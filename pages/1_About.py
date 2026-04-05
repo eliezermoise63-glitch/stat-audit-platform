@@ -63,7 +63,7 @@ with col1:
 
 with col2:
     st.markdown("""
-    ## 🎤 FAQ Entretien
+    ##  FAQ 
 
     **Q : Pourquoi ACP *et* AF ?**
 
