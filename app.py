@@ -376,12 +376,12 @@ def main() -> None:
 
     if uploaded_file is None:
         st.info("Déposez un fichier CSV pour démarrer l'audit.")
-        st.markdown("#### Datasets de démonstration (téléchargez puis uploadez)")
-        st.code(
-            "Iris    : https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv\n"
-            "Boston  : https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv\n"
-            "Heart   : https://raw.githubusercontent.com/sharmaroshan/Heart-UCI-Dataset/master/heart.csv",
-            language="text",
+        st.markdown("#### Datasets de démonstration")
+        st.markdown(
+            "Cliquez pour télécharger puis uploadez le fichier dans l'app : "
+            "[Iris](https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv) · "
+            "[Boston](https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv) · "
+            "[Heart](https://raw.githubusercontent.com/sharmaroshan/Heart-UCI-Dataset/master/heart.csv)"
         )
         return
 
