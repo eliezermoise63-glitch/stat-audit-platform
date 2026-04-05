@@ -368,43 +368,138 @@ def main() -> None:
     )
     st.markdown("---")
 
-    uploaded_file = st.file_uploader(
-        "Charger un dataset CSV",
-        type=["csv"],
-        help="Fichier CSV avec séparateur auto-détecté. Max 200 Mo.",
-    )
+    # ── Sélection de la source de données ────────────────────────────────────
+    st.markdown("#### Source de données")
+    source_tab1, source_tab2, source_tab3 = st.tabs([
+        "Fichier CSV", "Base SQLite", "URL directe"
+    ])
 
-    if uploaded_file is None:
-        st.info("Déposez un fichier CSV pour démarrer l'audit.")
-        st.markdown("#### Datasets de démonstration")
+    df_raw = None
+    source_label = ""
+
+    # ── Tab 1 : CSV ──────────────────────────────────────────────────────────
+    with source_tab1:
+        uploaded_file = st.file_uploader(
+            "Charger un dataset CSV",
+            type=["csv"],
+            help="Fichier CSV avec séparateur auto-détecté. Max 200 Mo.",
+        )
         st.markdown(
-            "Cliquez pour télécharger puis uploadez le fichier dans l'app : "
+            "Datasets de démonstration : "
             "[Iris](https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv) · "
             "[Boston](https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv) · "
             "[Heart](https://raw.githubusercontent.com/sharmaroshan/Heart-UCI-Dataset/master/heart.csv)"
         )
-        return
+        if uploaded_file is not None:
+            try:
+                df_raw = pd.read_csv(uploaded_file, sep=None, engine="python")
+                source_label = uploaded_file.name
+            except Exception as e:
+                show_error("Impossible de lire le fichier CSV.", e)
+                return
 
-    # ── Ingestion ─────────────────────────────────────────────────────────────
-    try:
-        df_raw = pd.read_csv(uploaded_file, sep=None, engine="python")
+    # ── Tab 2 : SQLite ───────────────────────────────────────────────────────
+    with source_tab2:
+        st.markdown("Chargez une base SQLite locale (.db ou .sqlite) et entrez une requête SQL.")
+        sqlite_file = st.file_uploader(
+            "Charger une base SQLite",
+            type=["db", "sqlite", "sqlite3"],
+            help="Fichier de base de données SQLite.",
+            key="sqlite_uploader",
+        )
+        if sqlite_file is not None:
+            import tempfile, sqlalchemy
 
-        current_file = uploaded_file.name
-        if st.session_state.get("last_file") != current_file:
-            st.session_state.pop("fa_interpretation", None)
-            st.session_state.pop("pca_interpretation", None)
-            st.session_state["last_file"] = current_file
+            # Sauvegarder le fichier temporairement
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".db") as tmp:
+                tmp.write(sqlite_file.read())
+                tmp_path = tmp.name
 
-    except Exception as e:
-        show_error("Impossible de lire le fichier CSV.", e)
+            # Lister les tables disponibles
+            try:
+                engine_sql = sqlalchemy.create_engine(f"sqlite:///{tmp_path}")
+                with engine_sql.connect() as conn:
+                    tables = sqlalchemy.inspect(engine_sql).get_table_names()
+
+                st.success(f"Base chargée — {len(tables)} table(s) disponible(s) : {', '.join(tables)}")
+
+                # Requête SQL
+                default_query = f"SELECT * FROM {tables[0]} LIMIT 1000" if tables else "SELECT * FROM ma_table LIMIT 1000"
+                sql_query = st.text_area(
+                    "Requête SQL",
+                    value=default_query,
+                    height=80,
+                    help="Entrez votre requête SELECT. Résultat limité à 10 000 lignes.",
+                )
+
+                if st.button("Exécuter la requête", type="primary"):
+                    try:
+                        with engine_sql.connect() as conn:
+                            df_raw = pd.read_sql(sql_query, conn)
+                        source_label = f"{sqlite_file.name} — requête SQL"
+                        st.session_state["sql_df"] = df_raw
+                        st.session_state["sql_label"] = source_label
+                        st.success(f"Requête exécutée : {df_raw.shape[0]} lignes x {df_raw.shape[1]} colonnes.")
+                    except Exception as e:
+                        show_error("Erreur lors de l'exécution de la requête SQL.", e)
+                        return
+
+                # Récupérer le résultat en session si déjà exécuté
+                if df_raw is None and "sql_df" in st.session_state:
+                    df_raw = st.session_state["sql_df"]
+                    source_label = st.session_state.get("sql_label", "SQLite")
+
+            except Exception as e:
+                show_error("Impossible d'ouvrir la base SQLite.", e)
+                return
+
+        else:
+            st.info(
+                "Chargez un fichier .db ou .sqlite. "
+                "Vous pouvez créer une base de test avec : "
+                "`python assets/demo_data_generator.py --sqlite`"
+            )
+
+    # ── Tab 3 : URL ──────────────────────────────────────────────────────────
+    with source_tab3:
+        url_input = st.text_input(
+            "URL d'un fichier CSV public",
+            placeholder="https://raw.githubusercontent.com/.../dataset.csv",
+        )
+        if url_input:
+            if st.button("Charger depuis l'URL", type="primary"):
+                try:
+                    df_raw = pd.read_csv(url_input, sep=None, engine="python")
+                    source_label = url_input.split("/")[-1]
+                    st.session_state["url_df"] = df_raw
+                    st.session_state["url_label"] = source_label
+                    st.success(f"Chargé : {df_raw.shape[0]} lignes x {df_raw.shape[1]} colonnes.")
+                except Exception as e:
+                    show_error("Impossible de charger l'URL.", e)
+                    return
+
+            # Récupérer depuis session si déjà chargé
+            if df_raw is None and "url_df" in st.session_state:
+                df_raw = st.session_state["url_df"]
+                source_label = st.session_state.get("url_label", "URL")
+
+    # ── Vérification qu'une source est chargée ───────────────────────────────
+    if df_raw is None:
+        st.info("Choisissez une source de données dans les onglets ci-dessus pour démarrer l'audit.")
         return
 
     if df_raw.empty:
-        st.error("Le fichier CSV est vide.")
+        st.error("Le dataset chargé est vide.")
         return
 
+    # Vider l'interprétation Claude si la source a changé
+    if st.session_state.get("last_file") != source_label:
+        st.session_state.pop("fa_interpretation", None)
+        st.session_state.pop("pca_interpretation", None)
+        st.session_state["last_file"] = source_label
+
     st.success(
-        f"Fichier chargé : **{df_raw.shape[0]}** lignes x **{df_raw.shape[1]}** colonnes."
+        f"Données chargées : **{df_raw.shape[0]}** lignes x **{df_raw.shape[1]}** colonnes."
     )
 
     # ── Sanitization ──────────────────────────────────────────────────────────

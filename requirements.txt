@@ -12,6 +12,9 @@
 pandas>=2.0.0,<3.0.0
 numpy>=1.24.0,<2.0.0
 
+# --- Database ---
+sqlalchemy>=2.0.0,<3.0.0
+
 # --- Machine Learning & Statistics ---
 # IMPORTANT : scikit-learn doit rester < 1.6 (compatibilité factor_analyzer)
 scikit-learn>=1.3.0,<1.6.0

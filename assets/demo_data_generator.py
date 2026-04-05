@@ -51,9 +51,17 @@ df.loc[99, "nb_projets_completes"] = 50    # outlier haut
 output_path = os.path.join(os.path.dirname(__file__), "demo_hr_dataset.csv")
 df.to_csv(output_path, index=False)
 
-print(f"✅ Dataset généré : {output_path}")
+print(f"✅ Dataset CSV généré : {output_path}")
 print(f"   {df.shape[0]} lignes × {df.shape[1]} colonnes")
-print(f"   NaN introduits : {df.isnull().sum().sum()}")
-print(f"   Outliers introduits : 3")
-print("\nAperçu :")
-print(df.head())
+
+# ── Export SQLite si --sqlite passé en argument ───────────────────────────────
+import sys
+if "--sqlite" in sys.argv:
+    import sqlite3
+    sqlite_path = os.path.join(os.path.dirname(__file__), "demo_hr_dataset.db")
+    conn = sqlite3.connect(sqlite_path)
+    df.to_sql("employes", conn, if_exists="replace", index=False)
+    conn.close()
+    print(f"✅ Base SQLite générée : {sqlite_path}")
+    print(f"   Table : employes ({df.shape[0]} lignes × {df.shape[1]} colonnes)")
+    print(f"   Requête de test : SELECT * FROM employes LIMIT 100")
