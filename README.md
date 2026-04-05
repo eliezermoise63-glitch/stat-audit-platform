@@ -3,6 +3,8 @@
 Projet en cours de développement — Data Science & Statistiques Appliquées.
 Un outil d'audit statistique automatisé, d'analyse multivariée et d'interprétation par LLM.
 
+Demo live : https://stat-audit-eliezer.streamlit.app
+
 ![CI](https://github.com/eliezermoise63-glitch/stat-audit-platform/actions/workflows/ci.yml/badge.svg)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 ![Streamlit](https://img.shields.io/badge/streamlit-1.30%2B-red.svg)
