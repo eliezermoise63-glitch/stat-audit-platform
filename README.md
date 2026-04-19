@@ -1,6 +1,6 @@
 # Statistical Audit Platform
 
-Plateforme d'audit statistique automatisée — chargement multi-source (CSV, SQLite, URL), nettoyage de données, détection automatique des types de variables, analyse multivariée (ACP, AF, ACM, AFDM) et interprétation par LLM via Claude (Anthropic).
+Plateforme d'audit statistique automatisée : chargement multi-source (CSV, SQLite, URL), nettoyage de données, détection automatique des types de variables, analyse multivariée (ACP, AF, ACM, AFDM) et interprétation par LLM via Claude (Anthropic).
 
 Demo live : https://stat-audit-eliezer.streamlit.app
 GitHub : https://github.com/eliezermoise63-glitch/stat-audit-platform
@@ -175,7 +175,7 @@ AFDM : dataset mixte (continues + catégorielles) analysé via `prince.FAMD`, es
 
 **SQLAlchemy**
 
-La connexion SQLite utilise SQLAlchemy 2.0. `pd.read_sql()` retourne un DataFrame identique à `pd.read_csv()` — le pipeline en aval ne fait aucune différence entre les sources.
+La connexion SQLite utilise SQLAlchemy 2.0. `pd.read_sql()` retourne un DataFrame identique à `pd.read_csv()` " le pipeline en aval ne fait aucune différence entre les sources".
 
 ---
 
@@ -232,7 +232,7 @@ pytest tests/ --cov=core --cov=utils --cov-report=term-missing
 
 ## Pitch (30 secondes)
 
-"J'ai développé une plateforme d'audit statistique automatisée. Elle accepte trois sources de données : fichier CSV, base SQLite avec requête SQL personnalisée, et URL directe. Elle détecte automatiquement le type de chaque variable — continue, catégorielle ou binaire — et applique la méthode adaptée : ACP et Analyse Factorielle pour les variables continues, ACM pour les catégorielles, AFDM pour les datasets mixtes. L'interprétation des résultats est assurée par Claude via l'API Anthropic."
+"J'ai développé une plateforme d'audit statistique automatisée. Elle accepte trois sources de données : fichier CSV, base SQLite avec requête SQL personnalisée, et URL directe. Elle détecte automatiquement le type de chaque variable " continue, catégorielle ou binaire " et applique la méthode adaptée : ACP et Analyse Factorielle pour les variables continues, ACM pour les catégorielles, AFDM pour les datasets mixtes. L'interprétation des résultats est assurée par Claude via l'API Anthropic."
 
 ---
 
