@@ -46,6 +46,7 @@ st.markdown("""
                    padding: 12px; border-radius: 4px; margin: 8px 0; }
     .info-box    { background: #d1ecf1; border-left: 4px solid #17a2b8;
                    padding: 12px; border-radius: 4px; margin: 8px 0; }
+    input[type="checkbox"] { accent-color: #444441; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -194,10 +195,10 @@ def show_detection_summary(detection: DetectionReport) -> None:
 
     with st.expander("Détail par variable"):
         type_labels = {
-            "continue": " Continue",
-            "categorielle": " Catégorielle",
-            "binaire": " Binaire",
-            "ignoree": " Ignorée",
+            "continue": "🔵 Continue",
+            "categorielle": "🟢 Catégorielle",
+            "binaire": "🟡 Binaire",
+            "ignoree": "⚫ Ignorée",
         }
         rows = [
             {"Variable": col, "Type détecté": type_labels.get(t, t)}
@@ -260,7 +261,7 @@ def tab_ingestion(
 
     st.markdown("---")
     st.subheader("Aperçu des données brutes")
-    st.dataframe(df_raw.head(50), use_container_width=True)
+    st.dataframe(df_raw.head(50).fillna("—"), use_container_width=True)
 
 
 def tab_correlations(engine: MultivariateEngine) -> None:

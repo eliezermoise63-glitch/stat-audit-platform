@@ -14,14 +14,20 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-# Style global cohérent
+# Style global cohérent — fond sombre pour correspondre à Streamlit dark theme
 plt.rcParams.update({
     "font.family": "DejaVu Sans",
     "axes.spines.top": False,
     "axes.spines.right": False,
+    "figure.facecolor": "#0e1117",
+    "axes.facecolor": "#0e1117",
+    "axes.labelcolor": "#fafafa",
+    "xtick.color": "#fafafa",
+    "ytick.color": "#fafafa",
+    "text.color": "#fafafa",
 })
 
-PALETTE_DIVERGING = "RdYlGn"
+PALETTE_DIVERGING = "RdBu_r"
 PALETTE_FA = "PRGn"
 
 
@@ -80,6 +86,8 @@ def plot_correlation_heatmap(
         ax=ax,
         cbar_kws={"shrink": 0.8},
     )
+    # Rendre le fond des cases masquées identique au fond de la figure
+    ax.set_facecolor("#0e1117")
     ax.set_title(title, fontsize=13, fontweight="bold", pad=12)
     fig.tight_layout()
     return fig

@@ -436,16 +436,16 @@ class MultivariateEngine:
         col_coords = col_coords.copy()
         col_coords.columns = [f"Dim{i+1}" for i in range(n_components)]
 
-        # Inertie par composante
-        eigenvalues = mca.eigenvalues_
+        # Inertie par composante — forcer numpy array pour éviter les problèmes d'index pandas
+        eigenvalues = np.array(mca.eigenvalues_).flatten()
         total_inertia = float(eigenvalues.sum()) if eigenvalues.sum() > 0 else 1.0
         inertia_pct = eigenvalues / total_inertia
         inertia_cum = np.cumsum(inertia_pct)
 
         inertia_summary = pd.DataFrame({
-            "Valeur propre": eigenvalues.round(4),
-            "Inertie (%)": (inertia_pct * 100).round(2),
-            "Inertie cumulée (%)": (inertia_cum * 100).round(2),
+            "Valeur propre": np.round(eigenvalues, 4),
+            "Inertie (%)": np.round(inertia_pct * 100, 2),
+            "Inertie cumulée (%)": np.round(inertia_cum * 100, 2),
         }, index=[f"Dim{i+1}" for i in range(n_components)])
 
         total_explained = float(inertia_cum[-1]) if len(inertia_cum) > 0 else 0.0
@@ -553,16 +553,16 @@ class MultivariateEngine:
         col_coords = col_coords.copy()
         col_coords.columns = [f"Dim{i+1}" for i in range(n_components)]
 
-        # Inertie par composante
-        eigenvalues = famd.eigenvalues_
+        # Inertie par composante — forcer numpy array pour éviter les problèmes d'index pandas
+        eigenvalues = np.array(famd.eigenvalues_).flatten()
         total_inertia = float(eigenvalues.sum()) if eigenvalues.sum() > 0 else 1.0
         inertia_pct = eigenvalues / total_inertia
         inertia_cum = np.cumsum(inertia_pct)
 
         inertia_summary = pd.DataFrame({
-            "Valeur propre": eigenvalues.round(4),
-            "Inertie (%)": (inertia_pct * 100).round(2),
-            "Inertie cumulée (%)": (inertia_cum * 100).round(2),
+            "Valeur propre": np.round(eigenvalues, 4),
+            "Inertie (%)": np.round(inertia_pct * 100, 2),
+            "Inertie cumulée (%)": np.round(inertia_cum * 100, 2),
         }, index=[f"Dim{i+1}" for i in range(n_components)])
 
         total_explained = float(inertia_cum[-1]) if len(inertia_cum) > 0 else 0.0
@@ -613,11 +613,11 @@ class MultivariateEngine:
                 "Variable": col,
                 "Stat Shapiro-Wilk": round(stat, 4) if not np.isnan(stat) else "N/A",
                 "p-value": round(p_val, 4) if not np.isnan(p_val) else "N/A",
-                "Normale (α=0.05)": " Oui" if is_normal else " Non",
+                "Normale (α=0.05)": "✅ Oui" if is_normal else "❌ Non",
             })
 
         normality_df = pd.DataFrame(normality_rows).set_index("Variable")
-        all_normal = all(r["Normale (α=0.05)"] == " Oui" for r in normality_rows)
+        all_normal = all(r["Normale (α=0.05)"] == "✅ Oui" for r in normality_rows)
         method = "pearson" if all_normal else "spearman"
 
         logger.info(
