@@ -22,7 +22,6 @@ plt.rcParams.update({
 })
 
 PALETTE_DIVERGING = "RdYlGn"
-PALETTE_SEQUENTIAL = "Blues"
 PALETTE_FA = "PRGn"
 
 
@@ -32,21 +31,36 @@ def plot_correlation_heatmap(
     corr_matrix: pd.DataFrame,
     p_matrix: Optional[pd.DataFrame] = None,
     figsize: Tuple[int, int] = (10, 8),
-    title: str = "Matrice de Corrélation (Pearson)",
+    title: str = "Matrice de Corrélation",
 ) -> plt.Figure:
     """
     Heatmap de corrélation avec masque de significativité optionnel.
-    Les cases non significatives (p > 0.05) sont grisées si p_matrix fournie.
+
+    Paramètres
+    ----------
+    corr_matrix : pd.DataFrame
+        Matrice de corrélation (Pearson ou Spearman).
+    p_matrix : pd.DataFrame, optionnel
+        Matrice de p-values. Si fournie, les cases non significatives (p >= 0.05)
+        sont affichées vides.
+    figsize : tuple
+        Dimensions de la figure matplotlib.
+    title : str
+        Titre du graphique.
+
+    Retourne
+    --------
+    plt.Figure
     """
     fig, ax = plt.subplots(figsize=figsize)
 
     mask = np.zeros_like(corr_matrix, dtype=bool)
     mask[np.triu_indices_from(mask)] = True  # masque triangle supérieur
 
-    # Masque non-significatif
     annot_data = corr_matrix.copy()
     if p_matrix is not None:
-        annot_data = corr_matrix.applymap(lambda x: f"{x:.2f}")
+        # CORRECTION : applymap déprécié depuis pandas 2.1, remplacé par map
+        annot_data = corr_matrix.map(lambda x: f"{x:.2f}")
         for i in corr_matrix.index:
             for j in corr_matrix.columns:
                 if p_matrix.loc[i, j] >= 0.05 and i != j:
@@ -112,8 +126,31 @@ def plot_pca_biplot(
     figsize: Tuple[int, int] = (9, 7),
 ) -> plt.Figure:
     """
-    Biplot ACP : projection des individus + vecteurs des variables.
+    Biplot ACP : projection des individus (PC1 × PC2) + vecteurs des variables.
+
+    Paramètres
+    ----------
+    features : np.ndarray
+        Coordonnées des individus dans l'espace factoriel (n_samples × n_components).
+    loadings : pd.DataFrame
+        Matrice des contributions des variables. Doit contenir 'PC1' et 'PC2'.
+    figsize : tuple
+        Dimensions de la figure matplotlib.
+
+    Retourne
+    --------
+    plt.Figure
+
+    Raises
+    ------
+    ValueError
+        Si les colonnes 'PC1' ou 'PC2' sont absentes des loadings.
     """
+    if "PC1" not in loadings.columns or "PC2" not in loadings.columns:
+        raise ValueError(
+            "Le biplot nécessite au moins 2 composantes (PC1 et PC2). "
+            f"Colonnes disponibles : {list(loadings.columns)}"
+        )
     fig, ax = plt.subplots(figsize=figsize)
 
     # Points individus
@@ -167,14 +204,33 @@ def plot_scree(
 def plot_fa_loadings_heatmap(
     loadings: pd.DataFrame,
     figsize: Tuple[int, int] = (10, 7),
-    title: str = "Saturations Factorielles (Varimax)",
+    title: str = "Saturations Factorielles",
+    rotation: str = "varimax",
 ) -> plt.Figure:
     """
-    Heatmap des saturations avec annotation et mise en évidence des saturations > 0.4.
+    Heatmap des saturations factorielles avec mise en évidence des saturations fortes.
+
+    Les cases dont la valeur absolue dépasse 0.4 sont entourées d'un cadre noir
+    pour faciliter l'identification des variables contributives par facteur.
+
+    Paramètres
+    ----------
+    loadings : pd.DataFrame
+        Matrice des saturations après rotation (n_features × n_factors).
+    figsize : tuple
+        Dimensions de la figure matplotlib.
+    title : str
+        Titre de base du graphique. La rotation est ajoutée automatiquement.
+    rotation : str
+        Rotation appliquée ('varimax' ou 'promax'). Ajoutée au titre.
+
+    Retourne
+    --------
+    plt.Figure
     """
     fig, ax = plt.subplots(figsize=figsize)
 
-    # Formatage des annotations (gras si > 0.4)
+    full_title = f"{title} ({rotation.capitalize()})"
     annot = loadings.round(2).astype(str)
 
     sns.heatmap(
@@ -203,7 +259,7 @@ def plot_fa_loadings_heatmap(
                     )
                 )
 
-    ax.set_title(title, fontsize=13, fontweight="bold", pad=12)
+    ax.set_title(full_title, fontsize=13, fontweight="bold", pad=12)
     ax.set_xlabel("Facteurs", fontsize=11)
     ax.set_ylabel("Variables", fontsize=11)
     fig.tight_layout()

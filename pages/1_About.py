@@ -23,26 +23,32 @@ with col1:
     ### Pipeline de traitement
 
     ```
-    CSV Upload
+    CSV / SQLite / URL
         ↓
     DataSanitizer          ← core/sanitizer.py
         │  • Suppression colonnes constantes
         │  • Imputation médiane (robuste)
         │  • Suppression outliers (z-score)
         ↓
+    VariableDetector       ← core/detector.py
+        │  • Détection : continue / catégorielle / binaire / ignorée
+        │  • Seuil catégoriel configurable
+        ↓
     MultivariateEngine     ← core/engine.py
-        │  • ACP (variance threshold auto)
-        │  • AF (Kaiser + Varimax + KMO/Bartlett)
-        │  • Corrélations (Pearson + p-values)
+        │  • ACP (variance threshold auto) — variables continues
+        │  • AF (Kaiser + Varimax/Promax + KMO/Bartlett) — continues
+        │  • ACM (Analyse des Correspondances Multiples) — catégorielles
+        │  • AFDM (Analyse Factorielle Données Mixtes) — dataset mixte
+        │  • Corrélations Pearson/Spearman (Shapiro-Wilk auto)
         ↓
     Visualisations         ← utils/charts.py
         │  • Heatmap corrélation
-        │  • Biplot ACP
-        │  • Scree plot + loadings heatmap
+        │  • Biplot ACP · Scree plot · Loadings heatmap
         ↓
     Interprétation LLM     ← utils/llm.py
            • Prompts structurés → Claude (Anthropic)
-           • Nommage des facteurs latents
+           • Nommage des facteurs latents (AF)
+           • Interprétation des axes (ACP, ACM, AFDM)
            • Recommandations métier
     ```
 
@@ -54,16 +60,20 @@ with col1:
     |-------|--------|
     | **Imputation médiane** | Robuste aux outliers (vs moyenne) |
     | **Z-score ≥ 3** | Seuil standard ; configurable via sidebar |
+    | **Détection automatique des types** | ACP/AF inadaptées aux catégorielles |
     | **Variance threshold 80%** | Compromis information/parsimonie ; ajustable |
     | **Critère de Kaiser** | Standard psychométrique (valeurs propres > 1) |
-    | **Rotation Varimax** | Simplifie la structure → interprétabilité maximale |
+    | **Varimax / Promax** | Varimax : facteurs indépendants. Promax : oblique (SHS) |
     | **KMO + Bartlett** | Validation obligatoire avant AF |
+    | **Pearson/Spearman auto** | Shapiro-Wilk → méthode adaptée à la distribution |
+    | **ACM via prince** | Standard pour variables qualitatives |
+    | **AFDM via prince** | Généralise ACP + ACM aux datasets mixtes |
     | **Séparation stats/LLM** | Inférence ≠ interprétation — architecture propre |
     """)
 
 with col2:
     st.markdown("""
-    ##  FAQ 
+    ## FAQ
 
     **Q : Pourquoi ACP *et* AF ?**
 
@@ -88,18 +98,26 @@ with col2:
 
     ---
 
-    **Q : Pourquoi Varimax ?**
+    **Q : Varimax ou Promax ?**
 
-    > Pour maximiser la variance des saturations.
-    > Résultat : chaque variable sature fort sur *un* facteur.
-    > → Interprétation plus claire.
+    > Varimax (orthogonale) : facteurs indépendants.
+    > Promax (oblique) : facteurs corrélés — plus réaliste
+    > en sciences humaines et sociales.
+
+    ---
+
+    **Q : Quelle différence entre ACM et AFDM ?**
+
+    > ACM : uniquement des variables catégorielles.
+    > AFDM : dataset mixte (continues + catégorielles).
+    > Les deux produisent un espace factoriel commun.
 
     ---
 
     **Q : Que fait le LLM exactement ?**
 
-    > Il reçoit les loadings + KMO + communautés
-    > et *nomme* les facteurs latents en termes métier.
+    > Il reçoit les résultats statistiques (loadings, coordonnées,
+    > inertie) et les *interprète* en langage métier.
     > Il ne fait **pas** d'inférence statistique.
     """)
 
@@ -111,12 +129,12 @@ st.markdown("""
 |-----------|-------------|---------|
 | UI | Streamlit | ≥ 1.30 |
 | Data | Pandas, NumPy | ≥ 2.0, ≥ 1.24 |
-| ACP | scikit-learn | ≥ 1.3 |
-| AF | factor-analyzer | ≥ 0.4.1 |
+| ACP / AF | scikit-learn, factor-analyzer | ≥ 1.3, ≥ 0.4.1 |
+| ACM / AFDM | prince | ≥ 0.7.1 |
 | Stats | SciPy, statsmodels | ≥ 1.11, ≥ 0.14 |
 | Viz | Matplotlib, Seaborn | ≥ 3.7, ≥ 0.12 |
 | LLM | Anthropic (Claude) | ≥ 0.25 |
 
 ---
-*Statistical Audit Platform v0.1.0 — Eliezer Moïse*
+*Statistical Audit Platform v0.2.0 — Eliezer Moïse*
 """)

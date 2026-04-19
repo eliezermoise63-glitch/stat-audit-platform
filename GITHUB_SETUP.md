@@ -27,7 +27,7 @@ git init
 git add .
 
 # Premier commit
-git commit -m "feat: initial commit — Statistical Audit Platform v0.1.0"
+git commit -m "feat: initial commit — Statistical Audit Platform v0.2.0"
 
 # Lier au dépôt GitHub (remplacer YOUR_USERNAME)
 git remote add origin https://github.com/YOUR_USERNAME/stat-audit-platform.git

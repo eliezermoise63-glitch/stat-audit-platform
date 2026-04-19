@@ -74,17 +74,18 @@ class TestFullPipeline:
 
     def test_correlation_matrix_shape(self, full_pipeline_output):
         _, _, engine, *_ = full_pipeline_output
-        corr, p = engine.compute_correlation_matrix()
+        result = engine.compute_correlation_matrix()
         n = engine.data.shape[1]
-        assert corr.shape == (n, n)
-        assert p.shape == (n, n)
+        assert result.corr_matrix.shape == (n, n)
+        assert result.p_matrix.shape == (n, n)
+        assert result.method in ("pearson", "spearman")
 
     def test_charts_all_render(self, full_pipeline_output):
         df_clean, _, engine, pca, fa = full_pipeline_output
-        corr, p = engine.compute_correlation_matrix()
+        corr_result = engine.compute_correlation_matrix()
 
         figs = [
-            plot_correlation_heatmap(corr, p),
+            plot_correlation_heatmap(corr_result.corr_matrix, corr_result.p_matrix),
             plot_pca_variance(pca.cumulative_variance, pca.n_components),
             plot_fa_loadings_heatmap(fa.loadings),
             plot_scree(fa.eigenvalues),

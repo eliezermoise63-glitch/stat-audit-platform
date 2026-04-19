@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from core.engine import MultivariateEngine, PCAResult, FAResult
+from core.engine import MultivariateEngine, PCAResult, FAResult, CorrelationResult, ACMResult, AFDMResult
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -93,15 +93,53 @@ class TestMultivariateEngine:
         result = engine.run_factor_analysis()
         assert (result.communalities >= 0).all()
 
+    def test_correlation_returns_correct_type(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        result = engine.compute_correlation_matrix()
+        assert isinstance(result, CorrelationResult)
+
     def test_correlation_matrix_symmetric(self, sample_df):
         engine = MultivariateEngine(sample_df)
-        corr, p = engine.compute_correlation_matrix()
-        pd.testing.assert_frame_equal(corr, corr.T)
+        result = engine.compute_correlation_matrix()
+        pd.testing.assert_frame_equal(result.corr_matrix, result.corr_matrix.T)
 
     def test_correlation_diagonal_ones(self, sample_df):
         engine = MultivariateEngine(sample_df)
-        corr, _ = engine.compute_correlation_matrix()
-        np.testing.assert_array_almost_equal(np.diag(corr.values), np.ones(corr.shape[0]))
+        result = engine.compute_correlation_matrix()
+        np.testing.assert_array_almost_equal(
+            np.diag(result.corr_matrix.values), np.ones(result.corr_matrix.shape[0])
+        )
+
+    def test_correlation_method_is_pearson_or_spearman(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        result = engine.compute_correlation_matrix()
+        assert result.method in ("pearson", "spearman")
+
+    def test_correlation_normality_results_has_all_vars(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        result = engine.compute_correlation_matrix()
+        assert set(result.normality_results.index) == set(sample_df.columns)
+
+    def test_pca_variance_threshold_reached_field(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        result = engine.run_pca()
+        assert isinstance(result.variance_threshold_reached, bool)
+
+    def test_fa_rotation_field(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        result = engine.run_factor_analysis(rotation="varimax")
+        assert result.rotation == "varimax"
+
+    def test_fa_promax_rotation(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        result = engine.run_factor_analysis(rotation="promax")
+        assert result.rotation == "promax"
+
+    def test_top_variables_per_component_shape(self, sample_df):
+        engine = MultivariateEngine(sample_df)
+        pca = engine.run_pca()
+        top = engine.top_variables_per_component(pca, n_top=3)
+        assert top.shape == (3, pca.n_components)
 
     def test_descriptive_stats_columns(self, sample_df):
         engine = MultivariateEngine(sample_df)

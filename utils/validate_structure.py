@@ -95,7 +95,8 @@ def check_engine():
 
         pca = engine.run_pca()
         assert pca.n_components >= 1
-        print(f"  ✅ ACP OK — {pca.n_components} composantes")
+        assert hasattr(pca, "variance_threshold_reached"), "Champ variance_threshold_reached manquant"
+        print(f"  ✅ ACP OK — {pca.n_components} composantes (seuil atteint : {pca.variance_threshold_reached})")
 
         fa = engine.run_factor_analysis()
         assert fa.n_factors >= 1

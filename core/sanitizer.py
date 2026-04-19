@@ -44,18 +44,21 @@ class SanitizationReport:
     # ── Propriétés calculées ──────────────────────────────────────────────────
     @property
     def pct_rows_retained(self) -> float:
+        """Pourcentage de lignes conservées après suppression des outliers."""
         if self.n_rows_input == 0:
             return 0.0
         return self.n_rows_output / self.n_rows_input * 100
 
     @property
     def pct_missing(self) -> float:
+        """Pourcentage de valeurs manquantes par rapport au total des cellules en entrée."""
         total = self.n_rows_input * self.n_cols_input
         if total == 0:
             return 0.0
         return self.imputed_values / total * 100
 
     def to_dict(self) -> dict:
+        """Sérialise le rapport en dictionnaire (utile pour l'affichage ou l'export)."""
         return {
             "Lignes (entrée)": self.n_rows_input,
             "Colonnes (entrée)": self.n_cols_input,
@@ -92,6 +95,19 @@ class DataSanitizer:
         min_unique_ratio: float = 0.01,
         imputation_strategy: str = "median",
     ) -> None:
+        """
+        Initialise le sanitizer avec les paramètres du pipeline.
+
+        Paramètres
+        ----------
+        zscore_threshold : float
+            Seuil z-score au-delà duquel une ligne est considérée outlier (défaut 3.0).
+        min_unique_ratio : float
+            Ratio minimal d'unicité pour garder une colonne (défaut 0.01 = 1%).
+            Calculé sur les valeurs non-nulles après imputation.
+        imputation_strategy : str
+            Stratégie d'imputation sklearn : 'median' (défaut), 'mean', 'most_frequent'.
+        """
         self.zscore_threshold = zscore_threshold
         self.min_unique_ratio = min_unique_ratio
         self.imputation_strategy = imputation_strategy
@@ -124,18 +140,8 @@ class DataSanitizer:
         report.dropped_constant_cols = constant_cols
         logger.info(f"[Sanitizer] {len(constant_cols)} colonne(s) constante(s) supprimée(s).")
 
-        # Étape 2 — Suppression des colonnes quasi-constantes (faible variance)
-        low_var_cols = []
-        for col in df_num.columns:
-            n_unique = df_num[col].nunique(dropna=True)
-            ratio = n_unique / max(len(df_num), 1)
-            if ratio < self.min_unique_ratio:
-                low_var_cols.append(col)
-        df_num = df_num.drop(columns=low_var_cols)
-        report.dropped_low_variance_cols = low_var_cols
-        logger.info(f"[Sanitizer] {len(low_var_cols)} colonne(s) quasi-constante(s) supprimée(s).")
-
-        # Étape 3 — Imputation (médiane par défaut : robuste)
+        # Étape 2 — Imputation avant détection des quasi-constantes
+        # (les NaN faussent le calcul de nunique si on le fait avant)
         n_missing = int(df_num.isnull().sum().sum())
         if n_missing > 0:
             imputer = SimpleImputer(strategy=self.imputation_strategy)
@@ -148,6 +154,19 @@ class DataSanitizer:
             df_imputed = df_num.copy()
         report.imputed_values = n_missing
         logger.info(f"[Sanitizer] {n_missing} valeur(s) imputée(s).")
+
+        # Étape 3 — Suppression des colonnes quasi-constantes (faible variance)
+        # CORRECTION : on calcule le ratio sur les valeurs non-nulles après imputation
+        low_var_cols = []
+        for col in df_imputed.columns:
+            n_valid = df_imputed[col].notna().sum()
+            n_unique = df_imputed[col].nunique(dropna=True)
+            ratio = n_unique / max(n_valid, 1)
+            if ratio < self.min_unique_ratio:
+                low_var_cols.append(col)
+        df_imputed = df_imputed.drop(columns=low_var_cols)
+        report.dropped_low_variance_cols = low_var_cols
+        logger.info(f"[Sanitizer] {len(low_var_cols)} colonne(s) quasi-constante(s) supprimée(s).")
 
         # Étape 4 — Suppression outliers (z-score absolu > seuil)
         if len(df_imputed) > 1 and df_imputed.shape[1] > 0:
