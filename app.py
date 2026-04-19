@@ -187,17 +187,17 @@ def show_detection_summary(detection: DetectionReport) -> None:
 
     if detection.is_mixed:
         st.markdown(
-            '<div class="info-box">Dataset mixte détecté — '
+            '<div class="info-box" style="color:#0c5460;font-weight:500;">Dataset mixte détecté — '
             "ACP + AF (continues) · ACM (catégorielles) · AFDM (ensemble)</div>",
             unsafe_allow_html=True,
         )
 
     with st.expander("Détail par variable"):
         type_labels = {
-            "continue": "🔵 Continue",
-            "categorielle": "🟢 Catégorielle",
-            "binaire": "🟡 Binaire",
-            "ignoree": "⚫ Ignorée",
+            "continue": " Continue",
+            "categorielle": " Catégorielle",
+            "binaire": " Binaire",
+            "ignoree": " Ignorée",
         }
         rows = [
             {"Variable": col, "Type détecté": type_labels.get(t, t)}
@@ -252,7 +252,7 @@ def tab_ingestion(
         engine_temp = MultivariateEngine(df_clean)
         desc = engine_temp.descriptive_stats()
         st.dataframe(
-            desc.style.format("{:.3f}").background_gradient(cmap="Blues", subset=["mean", "std"]),
+            desc.style.format("{:.3f}"),
             use_container_width=True,
         )
     except Exception:

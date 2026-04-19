@@ -613,11 +613,11 @@ class MultivariateEngine:
                 "Variable": col,
                 "Stat Shapiro-Wilk": round(stat, 4) if not np.isnan(stat) else "N/A",
                 "p-value": round(p_val, 4) if not np.isnan(p_val) else "N/A",
-                "Normale (α=0.05)": "✅ Oui" if is_normal else "❌ Non",
+                "Normale (α=0.05)": " Oui" if is_normal else " Non",
             })
 
         normality_df = pd.DataFrame(normality_rows).set_index("Variable")
-        all_normal = all(r["Normale (α=0.05)"] == "✅ Oui" for r in normality_rows)
+        all_normal = all(r["Normale (α=0.05)"] == " Oui" for r in normality_rows)
         method = "pearson" if all_normal else "spearman"
 
         logger.info(

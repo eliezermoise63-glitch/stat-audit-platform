@@ -1,4 +1,4 @@
-# 🚀 Mise sur GitHub — Guide en quelques clics
+#  Mise sur GitHub — Guide en quelques clics
 
 Ce fichier vous guide pas à pas pour publier ce projet sur GitHub en moins de 5 minutes.
 
@@ -37,7 +37,7 @@ git branch -M main
 git push -u origin main
 ```
 
-✅ Votre code est maintenant sur GitHub.
+ Votre code est maintenant sur GitHub.
 
 ---
 
@@ -55,7 +55,7 @@ git push -u origin main
    ```toml
    ANTHROPIC_API_KEY = "sk-ant-votre-cle-ici"
    ```
-7. Cliquer **Deploy** ✅
+7. Cliquer **Deploy** 
 
 L'URL publique sera : `https://YOUR_USERNAME-stat-audit-platform-app-XXXX.streamlit.app`
 

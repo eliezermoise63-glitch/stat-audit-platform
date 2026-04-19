@@ -29,23 +29,23 @@ def check_imports():
     for module, alias in required:
         try:
             exec(f"import {module}")
-            print(f"  ✅ {module}")
+            print(f"   {module}")
         except ImportError as e:
-            print(f"  ❌ {module} — {e}")
+            print(f"   {module} — {e}")
             all_ok = False
 
     # Test Anthropic séparément (optionnel)
     try:
         import anthropic
-        print(f"  ✅ anthropic")
+        print(f"   anthropic")
     except ImportError:
-        print("  ⚠️  anthropic — non installé (onglet IA désactivé)")
+        print("    anthropic — non installé (onglet IA désactivé)")
 
     return all_ok
 
 
 def check_sanitizer():
-    print("\n🛡️ Vérification du Sanitizer...")
+    print("\n Vérification du Sanitizer...")
     try:
         import numpy as np
         import pandas as pd
@@ -68,15 +68,15 @@ def check_sanitizer():
         assert df_clean.isnull().sum().sum() == 0, "NaN non imputés"
         assert len(df_clean) < len(df), "Outlier non supprimé"
 
-        print(f"  ✅ Sanitizer OK — {report.n_rows_output} lignes sorties")
+        print(f"   Sanitizer OK — {report.n_rows_output} lignes sorties")
         return True
     except Exception as e:
-        print(f"  ❌ Sanitizer ÉCHEC — {e}")
+        print(f"   Sanitizer ÉCHEC — {e}")
         return False
 
 
 def check_engine():
-    print("\n🔬 Vérification du Moteur...")
+    print("\n Vérification du Moteur...")
     try:
         import numpy as np
         import pandas as pd
@@ -96,15 +96,15 @@ def check_engine():
         pca = engine.run_pca()
         assert pca.n_components >= 1
         assert hasattr(pca, "variance_threshold_reached"), "Champ variance_threshold_reached manquant"
-        print(f"  ✅ ACP OK — {pca.n_components} composantes (seuil atteint : {pca.variance_threshold_reached})")
+        print(f"   ACP OK — {pca.n_components} composantes (seuil atteint : {pca.variance_threshold_reached})")
 
         fa = engine.run_factor_analysis()
         assert fa.n_factors >= 1
-        print(f"  ✅ AF OK — {fa.n_factors} facteurs (KMO={fa.kmo_score:.3f})")
+        print(f"   AF OK — {fa.n_factors} facteurs (KMO={fa.kmo_score:.3f})")
 
         return True
     except Exception as e:
-        print(f"  ❌ Moteur ÉCHEC — {e}")
+        print(f"   Moteur ÉCHEC — {e}")
         return False
 
 
@@ -119,8 +119,8 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 50)
     if ok_imports and ok_sanitizer and ok_engine:
-        print("✅ TOUT EST OK — Lancez : streamlit run app.py")
+        print(" TOUT EST OK — Lancez : streamlit run app.py")
         sys.exit(0)
     else:
-        print("❌ Des erreurs ont été détectées. Corrigez-les avant de lancer l'app.")
+        print(" Des erreurs ont été détectées. Corrigez-les avant de lancer l'app.")
         sys.exit(1)

@@ -15,7 +15,7 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     st.markdown("""
-    ## 📐 Architecture technique
+    ##  Architecture technique
 
     Ce projet est un **sous-module indépendant** d'une plateforme Data Science
     plus large. Il peut être utilisé de façon autonome ou intégré comme composant.
@@ -54,7 +54,7 @@ with col1:
 
     ---
 
-    ## 🔬 Choix techniques justifiés
+    ##  Choix techniques justifiés
 
     | Choix | Raison |
     |-------|--------|
@@ -123,7 +123,7 @@ with col2:
 
 st.markdown("---")
 st.markdown("""
-## 📦 Stack technique
+##  Stack technique
 
 | Composant | Bibliothèque | Version |
 |-----------|-------------|---------|
