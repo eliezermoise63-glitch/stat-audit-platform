@@ -141,7 +141,13 @@ class MultivariateEngine:
         if df.empty:
             raise ValueError("Le DataFrame fourni au moteur est vide.")
 
+        # Données complètes (pour ACM et AFDM qui ont besoin des catégorielles)
+        self.data_full: pd.DataFrame = df.copy()
+
+        # Données numériques uniquement (pour ACP, AF, corrélations)
         self.data: pd.DataFrame = df.select_dtypes(include=[np.number]).copy()
+        # Remplacement défensif des inf et NaN résiduels
+        self.data = self.data.replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
         if self.data.shape[1] < 2:
             raise ValueError("Au moins 2 colonnes numériques sont nécessaires.")
@@ -289,7 +295,19 @@ class MultivariateEngine:
             )
 
         # 2. DataFrame pour factor_analyzer (évite le conflit check_array() avec sklearn >= 1.6)
+        # Remplissage défensif des NaN et inf résiduels après standardisation
         data_for_fa = pd.DataFrame(self.data_scaled, columns=self.data.columns)
+        data_for_fa = data_for_fa.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        # Suppression des colonnes à variance nulle (provoquent des inf dans corr_mtx)
+        zero_var_cols = data_for_fa.columns[data_for_fa.std() < 1e-10].tolist()
+        if zero_var_cols:
+            logger.warning(f"[FA] Colonnes à variance nulle supprimées : {zero_var_cols}")
+            data_for_fa = data_for_fa.drop(columns=zero_var_cols)
+        if data_for_fa.shape[1] < 2:
+            raise ValueError(
+                "Pas assez de variables exploitables pour l'Analyse Factorielle "
+                "après suppression des colonnes à variance nulle."
+            )
 
         # 3. Choix automatique du nombre de facteurs (critère de Kaiser)
         if n_factors is None:
@@ -299,7 +317,7 @@ class MultivariateEngine:
             n_factors = max(1, int(np.sum(eigenvalues > 1)))
             logger.info(f"[FA] Critère de Kaiser : {n_factors} facteur(s) retenus.")
 
-        n_factors = min(n_factors, self.data.shape[1] - 1)
+        n_factors = min(n_factors, data_for_fa.shape[1] - 1)
 
         # 4. AF avec rotation choisie
         fa = FactorAnalyzer(n_factors=n_factors, rotation=rotation)
@@ -308,10 +326,10 @@ class MultivariateEngine:
         loadings = pd.DataFrame(
             fa.loadings_,
             columns=[f"F{i + 1}" for i in range(n_factors)],
-            index=self.data.columns,
+            index=data_for_fa.columns,
         )
         communalities = pd.Series(
-            fa.get_communalities(), index=self.data.columns, name="Communauté"
+            fa.get_communalities(), index=data_for_fa.columns, name="Communauté"
         )
         eigenvalues_full, _ = fa.get_eigenvalues()
 
@@ -369,12 +387,12 @@ class MultivariateEngine:
                 "Installez-le avec : pip install prince"
             )
 
-        # Sélection et validation des colonnes
-        cols_available = [c for c in categorical_cols if c in self.data.columns]
+        # Sélection et validation des colonnes dans le DataFrame complet
+        cols_available = [c for c in categorical_cols if c in self.data_full.columns]
         if not cols_available:
             raise ValueError(
                 f"Aucune des colonnes catégorielles demandées n'est disponible. "
-                f"Demandées : {categorical_cols}. Disponibles : {list(self.data.columns)}"
+                f"Demandées : {categorical_cols}. Disponibles : {list(self.data_full.columns)}"
             )
 
         if len(cols_available) < 2:
@@ -384,7 +402,7 @@ class MultivariateEngine:
             )
 
         # Conversion en chaînes (prince.MCA exige des colonnes de type objet/catégorie)
-        df_cat = self.data[cols_available].copy()
+        df_cat = self.data_full[cols_available].copy()
         for col in df_cat.columns:
             df_cat[col] = df_cat[col].astype(str)
 
@@ -402,12 +420,20 @@ class MultivariateEngine:
         mca = _prince.MCA(n_components=n_components, random_state=42)
         mca = mca.fit(df_cat)
 
-        # Coordonnées des individus
-        row_coords = mca.row_coordinates(df_cat)
+        # Coordonnées des individus (API prince >= 0.7 : row_coordinates(df) ou row_coordinates_)
+        if hasattr(mca, "row_coordinates_"):
+            row_coords = mca.row_coordinates_
+        else:
+            row_coords = mca.row_coordinates(df_cat)
+        row_coords = row_coords.copy()
         row_coords.columns = [f"Dim{i+1}" for i in range(n_components)]
 
-        # Coordonnées des modalités
-        col_coords = mca.column_coordinates(df_cat)
+        # Coordonnées des modalités (API prince >= 0.7 : column_coordinates_ ou column_coordinates)
+        if hasattr(mca, "column_coordinates_"):
+            col_coords = mca.column_coordinates_
+        else:
+            col_coords = mca.column_coordinates(df_cat)
+        col_coords = col_coords.copy()
         col_coords.columns = [f"Dim{i+1}" for i in range(n_components)]
 
         # Inertie par composante
@@ -478,9 +504,9 @@ class MultivariateEngine:
                 "Installez-le avec : pip install prince"
             )
 
-        # Validation et sélection des colonnes
-        cont_available = [c for c in continuous_cols if c in self.data.columns]
-        cat_available = [c for c in categorical_cols if c in self.data.columns]
+        # Validation et sélection des colonnes dans le DataFrame complet
+        cont_available = [c for c in continuous_cols if c in self.data_full.columns]
+        cat_available = [c for c in categorical_cols if c in self.data_full.columns]
 
         if not cont_available:
             raise ValueError(
@@ -495,8 +521,8 @@ class MultivariateEngine:
         # — continues : valeurs numériques telles quelles
         # — catégorielles : converties en str pour que prince.FAMD les traite correctement
         df_mixed = pd.concat([
-            self.data[cont_available],
-            self.data[cat_available].astype(str),
+            self.data_full[cont_available],
+            self.data_full[cat_available].astype(str),
         ], axis=1)
 
         n_components = min(n_components, df_mixed.shape[1] - 1)
@@ -512,11 +538,19 @@ class MultivariateEngine:
         famd = famd.fit(df_mixed)
 
         # Coordonnées des individus
-        row_coords = famd.row_coordinates(df_mixed)
+        if hasattr(famd, "row_coordinates_"):
+            row_coords = famd.row_coordinates_
+        else:
+            row_coords = famd.row_coordinates(df_mixed)
+        row_coords = row_coords.copy()
         row_coords.columns = [f"Dim{i+1}" for i in range(n_components)]
 
         # Coordonnées des variables (continues) et modalités (catégorielles)
-        col_coords = famd.column_coordinates(df_mixed)
+        if hasattr(famd, "column_coordinates_"):
+            col_coords = famd.column_coordinates_
+        else:
+            col_coords = famd.column_coordinates(df_mixed)
+        col_coords = col_coords.copy()
         col_coords.columns = [f"Dim{i+1}" for i in range(n_components)]
 
         # Inertie par composante
@@ -638,6 +672,13 @@ class MultivariateEngine:
         """
         try:
             data_df = pd.DataFrame(self.data_scaled, columns=self.data.columns)
+            data_df = data_df.replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            # Supprimer colonnes à variance nulle avant KMO
+            zero_var = data_df.columns[data_df.std() < 1e-10].tolist()
+            if zero_var:
+                data_df = data_df.drop(columns=zero_var)
+            if data_df.shape[1] < 2:
+                return 0.0, 1.0
             _, kmo_score = calculate_kmo(data_df)
             _, p_value = calculate_bartlett_sphericity(data_df)
             return float(kmo_score), float(p_value)

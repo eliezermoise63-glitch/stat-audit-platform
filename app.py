@@ -154,17 +154,20 @@ def show_error(msg: str, exception: Exception | None = None) -> None:
 
 def show_kmo_badge(kmo: float) -> None:
     """Affiche un badge coloré indiquant la qualité du KMO."""
-    if kmo >= 0.8:
+    if kmo is None or (isinstance(kmo, float) and np.isnan(kmo)):
+        label, color = "Non calculable", "#6c757d"
+    elif kmo >= 0.8:
         label, color = "Excellent", "#28a745"
     elif kmo >= 0.7:
         label, color = "Bon", "#17a2b8"
     elif kmo >= 0.6:
-        label, color = "Acceptable", "#ffc107"
+        label, color = "Acceptable", "#fd7e14"
     else:
         label, color = "Insuffisant", "#dc3545"
+    kmo_display = f"{kmo:.3f}" if kmo is not None and not (isinstance(kmo, float) and np.isnan(kmo)) else "n/a"
     st.markdown(
         f'<span style="background:{color};color:white;padding:3px 10px;'
-        f'border-radius:12px;font-weight:bold;">KMO {kmo:.3f} — {label}</span>',
+        f'border-radius:12px;font-weight:bold;">KMO {kmo_display} — {label}</span>',
         unsafe_allow_html=True,
     )
 
@@ -898,7 +901,7 @@ def main() -> None:
     if detection.continues:
         try:
             engine = MultivariateEngine(
-                df_clean[detection.continues],
+                df_clean,
                 variance_threshold=config["variance_threshold"],
             )
         except Exception as e:
